@@ -1,0 +1,56 @@
+---
+title: "Con_bio_introduced"
+output: html_document
+date: "2025-01-30"
+---
+1. Import file
+```{r}
+library (tidyverse)
+library (readxl)
+library (dplyr)
+```
+2. Rename plants
+```{r}
+# Create a named vector for plant_name -> plant_code mapping
+plant_code_map <- setNames(updated_p_and_b$plant_code, updated_p_and_b$plant_name)
+
+# Replace nectar_species in original_matrix with corresponding plant_code
+original_matrix$nectar_species <- sapply(original_matrix$nectar_species,
+  function(x) plant_code_map[x])
+
+# Result
+print(original_matrix)
+
+```
+
+3. Rename butterflies
+```{r}
+# Create a named vector for plant_name -> plant_code mapping
+butterfly_code_map <- setNames(updated_p_and_b$butterfly_code, updated_p_and_b$butterfly_name)
+
+# Replace nectar_species in original_matrix with corresponding plant_code
+original_matrix$butterfly_species <- sapply(original_matrix$butterfly_species,
+  function(x) butterfly_code_map[x])
+
+view(original_matrix)
+```
+
+4. Export new csv
+```{r}
+write.csv(original_matrix,"C:/Users/GCano/Documents/GitHub/Con_Bio_introduced/updated_matrix.csv", row.names = FALSE)
+```
+4. Remove NAs/Blanks
+```{r}
+prep_matrix<-updated_matrix
+prep_matrix<- prep_matrix [!is.na(updated_matrix$nectar_species) & !is.na(updated_matrix$butterfly_species),]
+```
+
+5. Label plants as introduced/native
+```{r}
+introduced_plants<-c ("ELUM", "LOCO6", "SECUR3", "LONIC", "CENTA", "BRASS", "LEVU", "ROMU", "CIAR4", "LIVU2", "POTEN", "DIAR", "FRAGA", "LIGUS2", "ECVU", "DACA6", "AGERA2")
+
+intro_matrix<-prep_matrix
+intro_matrix$native_status<- ifelse(prep_matrix$nectar_species %in% introduced_plants, "introduced", "native")
+```
+6. Label butterflies as generalist/specialist
+7. Visualize
