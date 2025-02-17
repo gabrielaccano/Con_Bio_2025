@@ -53,4 +53,127 @@ intro_matrix<-prep_matrix
 intro_matrix$native_status<- ifelse(prep_matrix$nectar_species %in% introduced_plants, "introduced", "native")
 ```
 6. Label butterflies as generalist/specialist
+```{r}
+general_butterflies <- c("CEPE", "CESP", "EPCL", "EUCL","EULI", "LIARC", "LIART", "LICAR", "LYPH", "MECY", "NYAN", "PAGL", "PAPI", "PAPO", "PATR", "PHSE", "PHTH", "PIRA", "POSP", "STME", "VASP")
+
+general_matrix<-intro_matrix
+general_matrix$diet_pref<-ifelse(intro_matrix$butterfly_species %in% general_butterflies, "generalist", "specialist")
+```
 7. Visualize
+```{r}
+behavior_3_data <- general_matrix %>%
+  filter(Behavior == 3)
+
+diet_proportion_data <- behavior_3_data %>%
+  group_by(native_status, diet_pref) %>%
+  summarise(CountOfBehavior3 = n(), .groups = "drop")  # Count how many times Behavior 3 occurred by diet preference
+
+# Create a stacked bar plot
+ggplot(diet_proportion_data, aes(x = diet_pref, y = CountOfBehavior3, fill = native_status)) +
+  geom_bar(stat = "identity") +  # Use bars to represent counts
+  labs(x = "Native Status", y = "Count of Behavior 3", title = "Count of Behavior 3 by Native Status and Diet Preference") +
+  scale_fill_manual(values = c("native" = "lightgreen", "introduced" = "lightblue")) +  # Customize colors for diet preference
+  theme_minimal()
+
+
+```
+
+```{r}
+proportion_data <- general_matrix %>%
+  group_by(diet_pref, native_status) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(diet_pref) %>%
+  mutate(Proportion = Count / sum(Count))  # Calculate the proportion of native vs introduced within each species type
+
+# Create a bar plot showing the proportions
+ggplot(proportion_data, aes(x = diet_pref, y = Proportion, fill = native_status)) +
+  geom_bar(stat = "identity", position = "fill") +  # 'fill' stacks the bars to show proportions
+  labs(x = "Species Type", y = "Proportion of Native vs Introduced", title = "Proportion of Native vs Introduced Species by Generalist/Specialist") +
+  scale_fill_manual(values = c("native" = "lightblue", "introduced" = "lightcoral")) +  # Customize fill colors
+  theme_minimal()
+```
+
+```{r}
+plant_proportion_data <- general_matrix %>%
+  group_by(diet_pref, native_status) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(native_status) %>%
+  mutate(Proportion = Count / sum(Count))
+
+ggplot(plant_proportion_data, aes(x = native_status, y = Proportion, fill = diet_pref)) +
+  geom_bar(stat = "identity", position = "dodge") +  # 'fill' stacks the bars to show proportions
+  labs(x = "Species Type", y = "Proportion of Native vs Introduced", title = "Proportion of Native vs Introduced Species by Generalist/Specialist") +
+  scale_fill_manual(values = c("generalist" = "lightblue", "specialist" = "lightcoral")) +  # Customize fill colors
+  theme_minimal()
+```
+
+find the 5 most common introduced species using columns nectar_species and native_status from df general_matrix and then make a bar graph showing the proportion of those plants used by a generalist or specialist from the column diet_pref
+```{r}
+introduced_species <- general_matrix %>%
+  filter(native_status == "introduced")
+
+# Step 2: Find the 5 most common introduced species by nectar_species
+top_5_introduced_species <- introduced_species %>%
+  group_by(nectar_species) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  arrange(desc(count)) %>%
+  head(5)  # Select the top 5 most common introduced species
+
+# Step 3: Filter the original dataset to include only the top 5 introduced species
+top_5_data <- introduced_species %>%
+  filter(nectar_species %in% top_5_introduced_species$nectar_species)
+
+# Step 4: Group by nectar_species and diet_pref, and calculate the count of occurrences for each combination
+test_diet_prop <- top_5_data %>%
+  group_by(nectar_species, diet_pref) %>%
+  summarise(count = n(), .groups = "drop")
+
+test_diet_prop <- test_diet_prop %>%
+  group_by(nectar_species) %>%
+  mutate(Proportion = count / sum(count)) 
+
+# Step 5: Create a bar plot showing the proportion of generalists vs specialists using each introduced plant
+ggplot(test_diet_prop, aes(x = nectar_species, y = Proportion, fill = diet_pref)) +
+  geom_bar(stat = "identity", position = "dodge") +  # Side-by-side bars
+  labs(x = "Introduced Species", y = "Count of Generalists/Specialists", 
+       title = "Diet Preference for the 5 Most Common Introduced Species") +
+  scale_fill_manual(values = c("generalist" = "lightblue", "specialist" = "lightcoral")) +  # Customize colors
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+same thing for the 5 most common native species
+```{r}
+native_species <- general_matrix %>%
+  filter(native_status == "native")
+
+# Step 2: Find the 5 most common native species by nectar_species
+top_5_native_species <- native_species %>%
+  group_by(nectar_species) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  arrange(desc(count)) %>%
+  head(5)  # Select the top 5 most common native species
+
+# Step 3: Filter the original dataset to include only the top 5 native species
+top_5_native_data <- native_species %>%
+  filter(nectar_species %in% top_5_native_species$nectar_species)
+
+# Step 4: Group by nectar_species and diet_pref, and calculate the count of occurrences for each combination
+diet_proportion_native_data <- top_5_native_data %>%
+  group_by(nectar_species, diet_pref) %>%
+  summarise(count = n(), .groups = "drop")
+
+diet_proportion_native_data <- diet_proportion_native_data %>%
+  group_by(nectar_species) %>%
+  mutate(Proportion = count / sum(count))
+
+# Step 5: Create a bar plot showing the proportion of generalists vs specialists using each native plant
+ggplot(diet_proportion_native_data, aes(x = nectar_species, y = Proportion, fill = diet_pref)) +
+  geom_bar(stat = "identity", position = "dodge") +  # Side-by-side bars
+  labs(x = "Native Species", y = "Count of Generalists/Specialists", 
+       title = "Diet Preference for the 5 Most Common Native Species") +
+  scale_fill_manual(values = c("generalist" = "lightblue", "specialist" = "lightcoral")) +  # Customize colors
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
